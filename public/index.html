@@ -2,69 +2,94 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <title>玩家状态</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>玩家状态</title>
   <style>
     body {
       background: #000;
       color: #0f0;
       font-family: monospace, monospace;
-      font-size: 4vw;
+      font-size: 5vw;
       max-width: 600px;
-      margin: auto;
+      margin: 2em auto;
       padding: 1em;
       text-align: center;
     }
-    .info {
+    .label {
+      font-weight: bold;
       margin-top: 1em;
     }
-    a {
-      display: block;
-      margin: 1em 0;
-      color: #0ff;
-      text-decoration: underline;
+    #timer, #currentTime {
+      margin-top: 1em;
+      font-size: 4vw;
     }
   </style>
 </head>
 <body>
   <h1>玩家状态</h1>
-  <div id="content">正在加载...</div>
+  <div><span class="label">编号：</span><span id="token">加载中...</span></div>
+  <div><span class="label">资金：</span><span id="money">加载中...</span></div>
+  <div><span class="label">血量：</span>
+    <span id="hp-head">-</span> /
+    <span id="hp-chest">-</span> /
+    <span id="hp-back">-</span>
+  </div>
+
+  <div id="currentTime" aria-live="polite">当前时间：--:--:--</div>
+  <div id="timer" aria-live="polite">剩余时间：--:--</div>
 
   <script>
     const token = localStorage.getItem("player_token");
-    const content = document.getElementById("content");
-
     if (!token) {
-      content.innerHTML = `
-        <p>未注册</p>
-        <a href="/register.html">点此注册</a>
-      `;
+      alert("未注册，请先访问注册页面");
+      location.href = "/register.html";
     } else {
+      document.getElementById("token").innerText = token;
       fetch(`https://scan.chongxi.us/status?token=${encodeURIComponent(token)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
-            content.innerText = "读取失败：" + data.error;
+            alert("获取玩家状态失败：" + data.error);
             return;
           }
-
-          const hp = data.hp || {};
-          content.innerHTML = `
-            <div class="info">
-              <p>编号：<strong>${token}</strong></p>
-              <p>金钱：<strong>${(data.money / 10000).toFixed(2)} 万</strong></p>
-              <p>血量：头部 ${hp.head}｜胸部 ${hp.chest}｜后背 ${hp.back}</p>
-              ${data.alive ? "" : "<p style='color:red;'>你已阵亡</p>"}
-            </div>
-            <a href="/loot.html?id=42">前往扫描物资</a>
-            <a href="/attack.html?target=填写UUID&region=head">发起攻击</a>
-            <a href="/evac.html?id=99">尝试撤离</a>
-          `;
+          document.getElementById("money").innerText = (data.money / 10000).toFixed(2) + " 万";
+          document.getElementById("hp-head").innerText = data.hp.head;
+          document.getElementById("hp-chest").innerText = data.hp.chest;
+          document.getElementById("hp-back").innerText = data.hp.back;
         })
         .catch(err => {
-          content.innerText = "网络错误：" + err.message;
+          alert("网络错误：" + err.message);
         });
     }
+
+    // 游戏起始时间，按需修改
+    const gameStartTime = new Date("2025-08-04T16:00:00");
+    const gameDurationMinutes = 60;
+    const gameEndTime = new Date(gameStartTime.getTime() + gameDurationMinutes * 60 * 1000);
+
+    function pad(num) {
+      return num.toString().padStart(2, "0");
+    }
+
+    function updateTimes() {
+      const now = new Date();
+
+      // 当前时间
+      const h = pad(now.getHours());
+      const m = pad(now.getMinutes());
+      const s = pad(now.getSeconds());
+      document.getElementById("currentTime").innerText = `当前时间：${h}:${m}:${s}`;
+
+      // 剩余时间
+      let remainingMs = gameEndTime - now;
+      if (remainingMs < 0) remainingMs = 0;
+      const mins = pad(Math.floor(remainingMs / 60000));
+      const secs = pad(Math.floor((remainingMs % 60000) / 1000));
+      document.getElementById("timer").innerText = `剩余时间：${mins}:${secs}`;
+    }
+
+    updateTimes();
+    setInterval(updateTimes, 1000);
   </script>
 </body>
 </html>
