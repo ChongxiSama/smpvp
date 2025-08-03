@@ -53,10 +53,12 @@
           resultEl.innerText = "错误：" + data.error;
           return;
         }
-        if (data.value) {
-          resultEl.innerText = `你获得了 ${data.value / 10000} 万货币！`;
-        } else {
-          resultEl.innerText = "物资信息异常，请稍后再试";
+        if (data.gain) {
+  resultEl.innerText = `你获得了 ${data.gain / 10000} 万货币！当前总资产：${data.total / 10000} 万`;
+} else if (data.error) {
+  resultEl.innerText = "错误：" + data.error;
+} else {
+  resultEl.innerText = "物资信息异常，请稍后再试";
         }
       })
       .catch(err => {
