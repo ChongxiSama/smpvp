@@ -30,13 +30,6 @@
   <script>
     (function () {
       const resultEl = document.getElementById("result");
-      const params = new URLSearchParams(window.location.search);
-      const evacId = params.get("id");
-
-      if (!evacId) {
-        resultEl.innerText = "错误：缺少撤离点ID";
-        return;
-      }
 
       const token = localStorage.getItem("player_token");
       if (!token) {
@@ -45,8 +38,7 @@
         return;
       }
 
-      // 调用后端撤离接口，示例：/evac?id=...&token=...
-      fetch(`https://scan.chongxi.us/evac?id=${encodeURIComponent(evacId)}&token=${encodeURIComponent(token)}`)
+      fetch(`https://scan.chongxi.us/evac?token=${encodeURIComponent(token)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
@@ -54,7 +46,7 @@
             return;
           }
           if (data.success) {
-            resultEl.innerText = "撤离成功！你可以去打舞萌了！";
+            resultEl.innerText = `撤离成功！你带走了 ${data.money / 10000} 万货币`;
           } else {
             resultEl.innerText = "撤离失败，让你撤了吗。";
           }
