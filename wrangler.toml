@@ -1,0 +1,12 @@
+name = "scan"
+main = "worker.js"
+compatibility_date = "2025-08-01"
+workers_dev = false
+type = "javascript"
+
+[build]
+upload.format = "modules"
+
+[[kv_namespaces]]
+binding = "GAME_KV"
+id = "fcc9a8dc559c493aa2420f4a09d2b91b"          # 在 Cloudflare 中创建 KV 命名空间后填上
