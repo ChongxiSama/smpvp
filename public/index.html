@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>玩家状态</title>
+  <style>
+    /* 页面整体背景和字体 */
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(ellipse at center, #000010 0%, #000000 100%);
+      color: #ddd;
+      font-family: monospace;
+      overflow-y: auto; /* 允许竖向滚动 */
+    }
+
+    /* 固定背景元素，始终铺满视口 */
+    .sky, .aurora, .polaris {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* 背景不阻碍鼠标操作 */
+      z-index: 0;
+    }
+
+    /* 星空容器 */
+    .sky {
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    /* 单颗星星 */
+    .star {
+      position: fixed;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: twinkle 2s infinite ease-in-out alternate;
+      pointer-events: none;
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.2; }
+      100% { opacity: 0.9; }
+    }
+
+    /* 极光效果 */
+    .aurora {
+      top: 50%;
+      left: 50%;
+      width: 800px;
+      height: 800px;
+      background: conic-gradient(from 0deg, 
+        rgba(0, 255, 200, 0.2), 
+        rgba(0, 100, 255, 0.15), 
+        rgba(255, 0, 255, 0.1), 
+        rgba(0, 255, 200, 0.2));
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: spin 40s linear infinite, flicker 5s ease-in-out infinite;
+      filter: blur(90px);
+      opacity: 0.5;
+      z-index: 1;
+      position: fixed;
+      pointer-events: none;
+    }
+
+    .aurora::after {
+      content: '';
+      position: fixed;
+      width: 800px;
+      height: 800px;
+      background: conic-gradient(from 90deg, 
+        rgba(255, 100, 255, 0.1),
+        rgba(0, 200, 255, 0.2),
+        rgba(0, 255, 150, 0.15),
+        rgba(255, 100, 255, 0.1));
+      border-radius: 50%;
+      animation: spin-reverse 60s linear infinite, flicker 7s ease-in-out infinite;
+      filter: blur(120px);
+      z-index: 0;
+      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes spin-reverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    /* 内容容器，允许滚动 */
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1.5em;
+      background: transparent;
+    }
+
+    h1 {
+      font-size: 6vw;
+      max-width: 100%;
+      background: linear-gradient(to right, #333, #000);
+      color: white;
+      padding: 0.5em;
+      display: inline-block;
+      line-height: 1.2;
+      border-radius: 0.25em;
+    }
+
+    a {
+      color: #ccc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-top: 2em;
+    }
+
+    .entry {
+      margin-bottom: 0.5em;
+    }
+
+    .date {
+      color: #888;
+      margin-right: 1em;
+    }
+
+    .age {
+      color: #555;
+      margin-left: 1em;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px dashed #444;
+      margin: 2em 0;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 8vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>玩家信息</h1>
+  <p class="label">编号：</p><p id="token"></p>
+  <p class="label">状态：</p><p id="status"></p>
+  <p class="label">剩余时间：</p><p id="timer"></p>
+  <p class="label">资金：</p><p id="money"></p>
+  <p class="label">血量：</p>
+  <ul>
+    <li>头部：<span id="hp-head">...</span></li>
+    <li>胸部：<span id="hp-chest">...</span></li>
+    <li>后背：<span id="hp-back">...</span></li>
+  </ul>
+
+  <script>
+    const token = localStorage.getItem("player_token")
+    document.getElementById("token").innerText = token || "未注册"
+
+    if (!token) {
+      alert("未注册，请先访问 /register 注册身份")
+      throw new Error("No token")
+    }
+
+    // 请求玩家数据
+    fetch(`https://scan.chongxi.us/player?token=${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error)
+
+        // 显示状态
+        document.getElementById("money").innerText = (data.money || 0) / 10000 + " 万元"
+        document.getElementById("hp-head").innerText = "✅".repeat(data.hp?.head || 0)
+        document.getElementById("hp-chest").innerText = "✅".repeat(data.hp?.chest || 0)
+        document.getElementById("hp-back").innerText = "✅".repeat(data.hp?.back || 0)
+
+        const statusEl = document.getElementById("status")
+        if (data.status === "alive") {
+          statusEl.innerText = "生存中"
+        } else if (data.status === "dead") {
+          statusEl.innerText = "已出局"
+          statusEl.className = "dead"
+        } else if (data.status === "evacuated") {
+          statusEl.innerText = "已撤离"
+          statusEl.className = "evac"
+        }
+      })
+      .catch(err => {
+        alert("读取失败：" + err.message)
+      })
+
+    // 倒计时（假设游戏总时长为 60 分钟）
+    const startTime = new Date("2025-08-04T14:00:00") // 改为你设定的时间
+    const endTime = new Date(startTime.getTime() + 60 * 60000)
+
+    function updateTimer() {
+      const now = new Date()
+      const remaining = Math.max(0, endTime - now)
+      const mins = String(Math.floor(remaining / 60000)).padStart(2, "0")
+      const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0")
+      document.getElementById("timer").innerText = `${mins}:${secs}`
+    }
+
+    updateTimer()
+    setInterval(updateTimer, 1000)
+  </script>
+</body>
+</html>
