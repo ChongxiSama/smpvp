@@ -32,42 +32,41 @@
       const resultEl = document.getElementById("result");
       const params = new URLSearchParams(window.location.search);
       const target = params.get("target");
-      const region = params.get("region");
+      const part = params.get("region"); // region 是前端传入名，我们映射为 part
 
-      if (!target || !region) {
+      if (!target || !part) {
         resultEl.innerText = "参数错误：缺少目标或攻击部位";
         return;
       }
 
-      const validRegions = ["head", "chest", "back"];
-      if (!validRegions.includes(region)) {
+      const validParts = ["head", "chest", "back"];
+      if (!validParts.includes(part)) {
         resultEl.innerText = "参数错误：攻击部位无效";
         return;
       }
 
       const token = localStorage.getItem("player_token");
       if (!token) {
-        alert("你个傻逼还没注册");
+        alert("你还没注册，请先注册身份");
         window.location.href = "/register.html";
         return;
       }
 
-      // 发送攻击请求，假设后端接口： /attack?attacker=token&target=target&region=region
-      fetch(`https://scan.chongxi.us/attack?attacker=${encodeURIComponent(token)}&target=${encodeURIComponent(target)}&region=${encodeURIComponent(region)}`)
+      // 发送请求：字段名修正为 token, target, part
+      fetch(`https://scan.chongxi.us/attack?token=${encodeURIComponent(token)}&target=${encodeURIComponent(target)}&part=${encodeURIComponent(part)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
-            resultEl.innerText = "你个飞舞马枪了 攻击无效：" + data.error;
+            resultEl.innerText = "攻击失败：" + data.error;
             return;
           }
 
-          // 根据后端返回数据展示结果
-          // 假设返回结构示例：
-          // { success: true, damage: 1, targetHp: { head: 2, chest: 3, back: 3 }, killed: false }
           if (data.success) {
-            let msg = `杀！对方${region}部位被爆了，扣除 ${data.damage} 血量。\n`;
-            msg += `目标剩余血量：头部${data.targetHp.head}，胸部${data.targetHp.chest}，后背${data.targetHp.back}。\n`;
-            if (data.killed) msg += "目标已被爆爆爆，资产归你所有！";
+            let msg = `成功命中！目标${part}部位受损。\n`;
+            if (data.target && data.target.hp) {
+              msg += `目标剩余血量：头部${data.target.hp.head}，胸部${data.target.hp.chest}，后背${data.target.hp.back}。\n`;
+            }
+            if (!data.target.alive) msg += "目标已阵亡，其财产归你所有！";
             resultEl.innerText = msg;
           } else {
             resultEl.innerText = "攻击未命中或无效。";
