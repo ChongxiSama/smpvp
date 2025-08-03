@@ -126,7 +126,21 @@ export default {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+// === API: 获取玩家状态 ===
+    if (path === '/status') {
+      const token = url.searchParams.get('token');
+      if (!token) return new Response("Missing token", { status: 400 });
 
+      const key = `player:${token}`;
+      const player = await env.GAME_KV.get(key, "json");
+      if (!player) return new Response("Player not found", { status: 404 });
+
+      return Response.json({
+        hp: player.hp,
+        money: player.money,
+        alive: player.alive,
+      });
+    }
     // 任何未匹配路径返回 JSON 格式错误
     return jsonError("Not found", 404);
   }
