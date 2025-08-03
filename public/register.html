@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>正在注册...</title>
+</head>
+<body>
+  <h2 id="msg">正在分配身份，请稍等...</h2>
+
+  <script>
+    const stored = localStorage.getItem("player_token")
+    if (stored) {
+      document.getElementById("msg").innerText = `你已注册，编号：${stored}`
+    } else {
+      // 没 token，请求服务器分配一个
+      fetch("https://scan.chongxi.us/register")
+        .then(res => res.json())
+        .then(data => {
+          if (data.token) {
+            localStorage.setItem("player_token", data.token)
+            document.getElementById("msg").innerText = `注册成功！你的编号是：${data.token}`
+          } else {
+            document.getElementById("msg").innerText = "注册失败：" + data.error
+          }
+        })
+        .catch(err => {
+          document.getElementById("msg").innerText = "请求失败：" + err.message
+        })
+    }
+  </script>
+</body>
+</html>

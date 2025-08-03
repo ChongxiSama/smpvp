@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>撤离中...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #222;
+      color: #ff0;
+      font-family: monospace, monospace;
+      font-size: 4vw;
+      max-width: 600px;
+      margin: auto;
+      padding: 1em;
+      text-align: center;
+    }
+    #result {
+      margin-top: 2em;
+      font-weight: bold;
+      font-size: 1.8em;
+      color: #ff0;
+    }
+  </style>
+</head>
+<body>
+  <h1>撤离判定中...</h1>
+  <div id="result">请稍候</div>
+
+  <script>
+    (function () {
+      const resultEl = document.getElementById("result");
+      const params = new URLSearchParams(window.location.search);
+      const evacId = params.get("id");
+
+      if (!evacId) {
+        resultEl.innerText = "错误：缺少撤离点ID";
+        return;
+      }
+
+      const token = localStorage.getItem("player_token");
+      if (!token) {
+        alert("未检测到身份信息，请先注册");
+        window.location.href = "/register.html";
+        return;
+      }
+
+      // 调用后端撤离接口，示例：/evac?id=...&token=...
+      fetch(`https://scan.chongxi.us/evac?id=${encodeURIComponent(evacId)}&token=${encodeURIComponent(token)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            resultEl.innerText = "撤离失败：" + data.error;
+            return;
+          }
+          if (data.success) {
+            resultEl.innerText = "撤离成功！你可以去打舞萌了！";
+          } else {
+            resultEl.innerText = "撤离失败，让你撤了吗。";
+          }
+        })
+        .catch(err => {
+          resultEl.innerText = "请求失败：" + err.message;
+        });
+    })();
+  </script>
+</body>
+</html>

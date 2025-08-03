@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>已锁定</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #000;
+      color: #f44;
+      font-family: monospace, monospace;
+      font-size: 4vw;
+      max-width: 600px;
+      margin: auto;
+      padding: 1em;
+      text-align: center;
+    }
+    #result {
+      margin-top: 2em;
+      font-weight: bold;
+      font-size: 1.6em;
+      color: #f88;
+    }
+  </style>
+</head>
+<body>
+  <h1>攻击判定中...</h1>
+  <div id="result">请稍候</div>
+
+  <script>
+    (function () {
+      const resultEl = document.getElementById("result");
+      const params = new URLSearchParams(window.location.search);
+      const target = params.get("target");
+      const region = params.get("region");
+
+      if (!target || !region) {
+        resultEl.innerText = "参数错误：缺少目标或攻击部位";
+        return;
+      }
+
+      const validRegions = ["head", "chest", "back"];
+      if (!validRegions.includes(region)) {
+        resultEl.innerText = "参数错误：攻击部位无效";
+        return;
+      }
+
+      const token = localStorage.getItem("player_token");
+      if (!token) {
+        alert("你个傻逼还没注册");
+        window.location.href = "/register.html";
+        return;
+      }
+
+      // 发送攻击请求，假设后端接口： /attack?attacker=token&target=target&region=region
+      fetch(`https://scan.chongxi.us/attack?attacker=${encodeURIComponent(token)}&target=${encodeURIComponent(target)}&region=${encodeURIComponent(region)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            resultEl.innerText = "你个飞舞马枪了 攻击无效：" + data.error;
+            return;
+          }
+
+          // 根据后端返回数据展示结果
+          // 假设返回结构示例：
+          // { success: true, damage: 1, targetHp: { head: 2, chest: 3, back: 3 }, killed: false }
+          if (data.success) {
+            let msg = `杀！对方${region}部位被爆了，扣除 ${data.damage} 血量。\n`;
+            msg += `目标剩余血量：头部${data.targetHp.head}，胸部${data.targetHp.chest}，后背${data.targetHp.back}。\n`;
+            if (data.killed) msg += "目标已被爆爆爆，资产归你所有！";
+            resultEl.innerText = msg;
+          } else {
+            resultEl.innerText = "攻击未命中或无效。";
+          }
+        })
+        .catch(err => {
+          resultEl.innerText = "请求失败：" + err.message;
+        });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>物资扫描</title>
+<style>
+  body {
+    margin: 0; padding: 1em;
+    background: #000;
+    color: #0f0;
+    font-family: monospace, monospace;
+    font-size: 4vw;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+  #result {
+    margin-top: 2em;
+    font-weight: bold;
+    font-size: 1.8em;
+    color: #0ff;
+  }
+</style>
+</head>
+<body>
+  <h1>物资扫描中...</h1>
+  <div id="result">请稍候</div>
+
+  <script>
+  (function() {
+    const resultEl = document.getElementById("result");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if (!id) {
+      resultEl.innerText = "错误：缺少物资ID参数";
+      return;
+    }
+
+    const token = localStorage.getItem("player_token");
+    if (!token) {
+      alert("未检测到玩家身份，请先访问注册页面完成注册。");
+      window.location.href = "/register.html";
+      return;
+    }
+
+    // 请求后端接口获取物资
+    fetch(`https://scan.chongxi.us/loot?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`)
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.error) {
+          resultEl.innerText = "错误：" + data.error;
+          return;
+        }
+        if (data.value) {
+          resultEl.innerText = `你获得了 ${data.value / 10000} 万货币！`;
+        } else {
+          resultEl.innerText = "物资信息异常，请稍后再试";
+        }
+      })
+      .catch(err => {
+        resultEl.innerText = "网络请求失败：" + err.message;
+      });
+  })();
+  </script>
+</body>
+</html>
