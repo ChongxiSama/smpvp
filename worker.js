@@ -28,6 +28,13 @@ export default {
       }
     }
 
+    // 统一错误响应函数
+    const jsonError = (msg, status = 400) =>
+      new Response(JSON.stringify({ error: msg }), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
     // === API: 注册玩家 ===
     if (path === '/register') {
       const token = crypto.randomUUID();
@@ -37,18 +44,20 @@ export default {
         alive: true,
       };
       await env.GAME_KV.put(`player:${token}`, JSON.stringify(playerData));
-      return Response.json({ token });
+      return new Response(JSON.stringify({ token }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // === API: 获取物资 ===
     if (path === '/loot') {
       const token = url.searchParams.get('token');
       const id = url.searchParams.get('id');
-      if (!token || !id) return new Response("Missing token or id", { status: 400 });
+      if (!token || !id) return jsonError("Missing token or id", 400);
 
       const key = `player:${token}`;
       const player = await env.GAME_KV.get(key, "json");
-      if (!player || !player.alive) return new Response("Invalid player", { status: 403 });
+      if (!player || !player.alive) return jsonError("Invalid or dead player", 403);
 
       const isHigh = parseInt(id) >= 61;
       const gain = isHigh
@@ -58,7 +67,9 @@ export default {
       player.money += gain;
       await env.GAME_KV.put(key, JSON.stringify(player));
 
-      return Response.json({ gain, total: player.money });
+      return new Response(JSON.stringify({ gain, total: player.money }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // === API: 攻击玩家（扫码击杀） ===
@@ -67,14 +78,14 @@ export default {
       const target = url.searchParams.get("target");
       const part = url.searchParams.get("part"); // head / chest / back
 
-      if (!token || !target || !part) return new Response("Missing params", { status: 400 });
+      if (!token || !target || !part) return jsonError("Missing params", 400);
 
       const targetKey = `player:${target}`;
       const targetData = await env.GAME_KV.get(targetKey, "json");
-      if (!targetData || !targetData.alive) return new Response("Target invalid", { status: 400 });
+      if (!targetData || !targetData.alive) return jsonError("Target invalid or dead", 400);
 
       if (targetData.hp[part] === 0) {
-        return new Response("Already disabled", { status: 400 });
+        return jsonError("Part already disabled", 400);
       }
 
       targetData.hp[part] = 0;
@@ -94,24 +105,29 @@ export default {
       }
 
       await env.GAME_KV.put(targetKey, JSON.stringify(targetData));
-      return Response.json({ success: true, target: targetData });
+      return new Response(JSON.stringify({ success: true, target: targetData }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // === API: 撤离 ===
     if (path === '/evac') {
       const token = url.searchParams.get("token");
-      if (!token) return new Response("Missing token", { status: 400 });
+      if (!token) return jsonError("Missing token", 400);
 
       const playerKey = `player:${token}`;
       const player = await env.GAME_KV.get(playerKey, "json");
-      if (!player || !player.alive) return new Response("Invalid", { status: 400 });
+      if (!player || !player.alive) return jsonError("Invalid or dead player", 400);
 
       player.alive = false;
       await env.GAME_KV.put(playerKey, JSON.stringify(player));
 
-      return Response.json({ success: true, money: player.money });
+      return new Response(JSON.stringify({ success: true, money: player.money }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return new Response("Not found", { status: 404 });
+    // 任何未匹配路径返回 JSON 格式错误
+    return jsonError("Not found", 404);
   }
 };
